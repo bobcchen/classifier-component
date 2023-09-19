@@ -28,11 +28,11 @@ data_dict = {
         'shape': '(5,)',
         'length': 10000
     },
-    # 'labels': {
-    #     'dtype': 'U32',
-    #     'shape': '(1,)',
-    #     'length': 10000
-    # }
+    'labels': {
+        'dtype': 'U32',
+        'shape': '(2,)',
+        'length': 10000
+    }
 }
 
 class BaseComponent(ABC):
@@ -88,7 +88,7 @@ class BaseComponent(ABC):
             return self.d_bufs[uuid][field][0]
 
     def shm_write(self, uuid, field, array):
-        if array.any():
+        if array.shape != (0, ):  # array.any() throws error for string dtype
             if 'length' in data_dict[field]:
                 length = array.shape[0]
 
@@ -111,7 +111,7 @@ class BaseComponent(ABC):
         outputs = self.process(*inputs)
 
         # Write to shm
-        output_names = []  # TODO: from config
+        output_names = ['labels']  # TODO: from config
         if output_names:
             if len(output_names) == 1:
                 outputs = tuple((outputs, ))

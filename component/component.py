@@ -37,10 +37,13 @@ class Component(BaseComponent):
             chips.append(self.preprocess(torch.from_numpy(chip)))
 
         if not chips:
-            return []
+            return np.array([])
 
         chips = torch.stack(chips)
-        prediction = self.model(chips)
-        logging.info(prediction)
+        prediction = self.model(chips).softmax(1)
+        class_ids = prediction.argmax(1).tolist()
 
-        return []
+        result = [[self.weights.meta['categories'][class_id], str(prediction[i, class_id].item())] for i, class_id in enumerate(class_ids)]
+        logging.info(f'Classifier results: {result}')
+        result = np.array(result, dtype='U32')
+        return result
