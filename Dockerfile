@@ -26,12 +26,10 @@ RUN rm -rf /var/cache/apt/archives/
 
 RUN python3 -m pip install --upgrade pip setuptools
 
-COPY . /app
-WORKDIR /app
-RUN cd deep_sort_realtime && \
-    python3 -m pip install --no-cache-dir .
+COPY component /app
+COPY requirements.txt /app
 
+WORKDIR /app
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-WORKDIR /app/component
 CMD ["python3", "server.py"]

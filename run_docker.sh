@@ -6,7 +6,7 @@ docker run -d --rm \
   --name=pipeline-manager \
   -v $LOCAL_DIR:/data \
 	cv-pipeline-manager:v1 \
-	python server.py --servers detector tracker
+	python server.py --servers detector tracker classifier
 
 docker run -d --rm \
 	--gpus all \
@@ -14,8 +14,14 @@ docker run -d --rm \
 	detector-component:v1 \
 	python server.py --service detector --next_service tracker
 
-docker run -it \
+docker run -d --rm \
 	--gpus all \
   --ipc=container:pipeline-manager \
 	tracker-component:v1 \
-	python server.py --service tracker --record_tracks --save_chips
+	python server.py --service tracker --next_service classifier
+
+docker run -it \
+	--gpus all \
+  --ipc=container:pipeline-manager \
+	classifier-component:v1 \
+	python server.py --service classifier

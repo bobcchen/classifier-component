@@ -1,10 +1,6 @@
-from pathlib import Path
-from deep_sort_realtime.deepsort_tracker import DeepSort
-from drawer import Drawer
-from misc import save_frame, save_chips
-import cv2
-import threading
-import copy
+import torchvision
+import torch
+import numpy as np
 
 import logging
 from base_component import BaseComponent
@@ -17,45 +13,34 @@ class Component(BaseComponent):
     def __init__(self, config):
         super().__init__(config)
 
-        self.seconds = config.seconds
-        self.infer_fps = config.infer_fps
-        self.classes_list = ['person']
-        self.output_dir = Path(config.output_dir)
-        self.crop_chips = config.save_chips
-        self.record_tracks = config.record_tracks
-
-        self.drawer = Drawer(color=(255, 0, 0))
-        self.tracker = DeepSort(max_age=30, nn_budget=10, embedder='torchreid')
-
-        logging.info(f'Making output folder at: {self.output_dir}')
-        if self.record_tracks:
-            self.frames_save_dir = self.output_dir / f'0_frames'
-            self.frames_save_dir.mkdir(parents=True, exist_ok=True)
-
-            # self.out_track_fp = self.output_dir / f'0_inference.avi'
-            # self.out_track = cv2.VideoWriter(str(self.out_track_fp), cv2.VideoWriter_fourcc(*'MJPG'), self.infer_fps, (1080, 1920))
-
-        if self.crop_chips:
-            self.chips_save_dir = self.output_dir / f'0_crops'
-            self.chips_save_dir.mkdir(parents=True, exist_ok=True)
-
-        self.frame_id = 0
+        self.weights = torchvision.models.efficientnet.EfficientNet_B7_Weights.DEFAULT
+        self.model = torchvision.models.efficientnet_b7(
+            weights=self.weights
+        )
+        self.model.eval()
+        self.preprocess = self.weights.transforms()
+        logging.info('model loaded.')
 
 
-    def process(self, frame, raw_detections):
-        logging.info(f'processing frame id: {self.frame_id}')
+    def process(self, frame, tracks):
+        # tracks is a (n, 5) array containing l, t, r, b and track_id
+        chips = []
+        frame_h, frame_w, _ = frame.shape
+        for (l, t, r, b, _) in tracks:
+            l = max(l, 0)
+            t = max(t, 0)
+            r = min(r, frame_w)
+            b = min(b, frame_h)
+            chip = frame[t:b, l:r]
+            # move axis from (H, W, C) to (C, H, W)
+            chip = np.moveaxis(chip, 2, 0)
+            chips.append(self.preprocess(torch.from_numpy(chip)))
 
-        all_detections = [tuple((d[:4], d[4], self.classes_list[int(d[5])])) for d in raw_detections.tolist()]  # TODO change
-        logging.info(f'all detections: {all_detections}')
-        all_tracks = self.tracker.update_tracks(frame=frame, raw_detections=all_detections)
-        logging.info(f'all tracks: {[vars(track) for track in all_tracks]}')
+        if not chips:
+            return []
 
-        if len(all_tracks) != 0:
-            if self.record_tracks:
-                threading.Thread(target=save_frame, args=(copy.deepcopy(frame), self.frame_id, all_tracks, self.frames_save_dir, self.drawer), daemon=True).start()
+        chips = torch.stack(chips)
+        prediction = self.model(chips)
+        logging.info(prediction)
 
-            if self.crop_chips:
-                threading.Thread(target=save_chips, args=(copy.deepcopy(frame), self.frame_id, all_tracks, self.chips_save_dir, '0'),
-                                 daemon=True).start()
-
-        self.frame_id += 1
+        return []
