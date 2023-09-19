@@ -16,7 +16,7 @@ class Component(BaseComponent):
         self.weights = torchvision.models.efficientnet.EfficientNet_B7_Weights.DEFAULT
         self.model = torchvision.models.efficientnet_b7(
             weights=self.weights
-        )
+        ).cuda()
         self.model.eval()
         self.preprocess = self.weights.transforms()
         logging.info('model loaded.')
@@ -34,13 +34,14 @@ class Component(BaseComponent):
             chip = frame[t:b, l:r]
             # move axis from (H, W, C) to (C, H, W)
             chip = np.moveaxis(chip, 2, 0)
-            chips.append(self.preprocess(torch.from_numpy(chip)))
+            chips.append(self.preprocess(torch.from_numpy(chip).cuda()))
 
         if not chips:
             return np.array([])
 
         chips = torch.stack(chips)
-        prediction = self.model(chips).softmax(1)
+        with torch.no_grad():
+            prediction = self.model(chips).softmax(1)
         class_ids = prediction.argmax(1).tolist()
 
         result = [[self.weights.meta['categories'][class_id], str(prediction[i, class_id].item())] for i, class_id in enumerate(class_ids)]
