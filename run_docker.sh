@@ -20,7 +20,7 @@ docker run -d --rm \
 	tracker-component:v1 \
 	python server.py --service tracker --next_service classifier
 
-docker run -it \
+docker run -it --rm \
 	--gpus all \
   --ipc=container:pipeline-manager \
 	classifier-component:v1 \
