@@ -13,7 +13,7 @@ class Component(BaseComponent):
     def __init__(self, config):
         super().__init__(config)
 
-        self.weights = torchvision.models.efficientnet.EfficientNet_B7_Weights.DEFAULT
+        self.weights = torchvision.models.efficientnet.EfficientNet_B1_Weights.DEFAULT
         self.model = torchvision.models.efficientnet_b7(
             weights=self.weights
         ).cuda()
