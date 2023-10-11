@@ -14,7 +14,7 @@ class Component(BaseComponent):
         super().__init__(config)
 
         self.weights = torchvision.models.efficientnet.EfficientNet_B1_Weights.DEFAULT
-        self.model = torchvision.models.efficientnet_b7(
+        self.model = torchvision.models.efficientnet_b1(
             weights=self.weights
         ).cuda()
         self.model.eval()
