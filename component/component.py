@@ -45,6 +45,7 @@ class Component(BaseComponent):
         class_ids = prediction.argmax(1).tolist()
 
         result = [[self.weights.meta['categories'][class_id], str(prediction[i, class_id].item())] for i, class_id in enumerate(class_ids)]
-        logging.info(f'Classifier results: {result}')
+        # logging.info(f'Classifier results: {result}')
+        logging.info(len(result))
         result = np.array(result, dtype='U32')
         return result
